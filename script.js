@@ -611,12 +611,15 @@ const quizBank = [
   }
 ];
 
-// 한 번에 풀어볼 퀴즈 문제 수 (선생님 취향대로 숫자를 조절하셔도 됩니다)
+// 한 번에 풀어볼 퀴즈 문제 수
 const QUIZ_COUNT = 5; 
 
 let quizData = [];
 let currentQuestion = 0;
 let score = 0;
+
+// 현재 문제의 '섞인 보기 목록'을 저장하는 변수
+let currentShuffledOptions = [];
 
 const questionEl = document.getElementById("question-text");
 const optionsContainer = document.getElementById("options-container");
@@ -629,7 +632,7 @@ const resultBox = document.getElementById("result-box");
 const scoreText = document.getElementById("score-text");
 const restartBtn = document.getElementById("restart-btn");
 
-// 전체 문제 중에서 QUIZ_COUNT(5개)만큼 무작위 추출하는 함수
+// 전체 문제 중에서 QUIZ_COUNT개만큼 무작위 추출
 function initQuiz() {
   const shuffled = [...quizBank].sort(() => Math.random() - 0.5);
   quizData = shuffled.slice(0, QUIZ_COUNT);
@@ -647,10 +650,19 @@ function loadQuiz() {
   currentNumEl.textContent = currentQuestion + 1;
   questionEl.textContent = currentData.question;
 
-  currentData.options.forEach((option, index) => {
+  // 💡 [핵심] 보기의 텍스트와 정답 여부를 짝지은 뒤 무작위(셔플)로 섞습니다.
+  currentShuffledOptions = currentData.options
+    .map((optionText, index) => ({
+      text: optionText,
+      isCorrect: index === currentData.answer
+    }))
+    .sort(() => Math.random() - 0.5);
+
+  // 섞인 보기를 버튼으로 화면에 생성
+  currentShuffledOptions.forEach((optionObj, index) => {
     const button = document.createElement("button");
     button.classList.add("option-btn");
-    button.textContent = `${index + 1}. ${option}`;
+    button.textContent = `${index + 1}. ${optionObj.text}`;
     button.addEventListener("click", () => selectOption(index));
     optionsContainer.appendChild(button);
   });
@@ -667,14 +679,16 @@ function selectOption(selectedIndex) {
   const currentData = quizData[currentQuestion];
   const buttons = optionsContainer.querySelectorAll(".option-btn");
 
+  // 모든 버튼 비활성화 및 진짜 정답 항목 녹색 표시
   buttons.forEach((button, index) => {
     button.disabled = true;
-    if (index === currentData.answer) {
+    if (currentShuffledOptions[index].isCorrect) {
       button.classList.add("correct");
     }
   });
 
-  if (selectedIndex === currentData.answer) {
+  // 학생이 선택한 보기가 정답인지 판별
+  if (currentShuffledOptions[selectedIndex].isCorrect) {
     score++;
     feedbackEl.textContent = `⭕ 정답입니다! ${currentData.explanation}`;
     feedbackEl.classList.add("correct");
@@ -709,5 +723,5 @@ restartBtn.addEventListener("click", () => {
   initQuiz();
 });
 
-// 페이지 접속 시 퀴즈 초기화
+// 시작 시 퀴즈 초기화
 initQuiz();
